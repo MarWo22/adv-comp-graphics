@@ -42,7 +42,7 @@ GLuint shading::loadShaderProgram(const std::string& vertexShader, const std::st
     glShaderSource(vShader, 1, &vs, nullptr);
     glShaderSource(fShader, 1, &fs, nullptr);
     // text data is not needed beyond this point
-ion
+
     glCompileShader(vShader);
     int compileOk = 0;
     glGetShaderiv(vShader, GL_COMPILE_STATUS, &compileOk);
