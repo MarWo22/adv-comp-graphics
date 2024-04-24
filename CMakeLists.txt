@@ -21,7 +21,9 @@ add_executable(main
         src/cpp/shading.cpp
         src/cpp/imgui/imgui_impl_glfw.cpp
         src/cpp/imgui/imgui_impl_opengl3.cpp
- )
+        src/cpp/sky/sky_physics.cpp
+        src/cpp/sky/sky_physics.h
+)
 
 find_package(OpenGL REQUIRED)
 
