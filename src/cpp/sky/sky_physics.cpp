@@ -3,23 +3,34 @@
 #include "glm/vec3.hpp"
 #include "glm/gtx/vector_angle.inl"
 
-double sky::density(double height) const {
+double sky::molecular_density(const double height) const {
     return sea_level_molecular_density * exp(-height / atmospheric_thickness);
 }
 
-double sky::raleigh_scattering_coefficient(const double height) const{
+double sky::rayleigh_scattering_coefficient(const double height, const double wavelength) const {
     return
-    (8 * pow(M_PI, 2) * pow((pow(refraction_index, 2) - 1),2)) /
-    (3 * sea_level_molecular_density) *
-    exp(-height/scale_height);
+    8 * pow(M_PI, 3) * pow(pow(air_refraction_index, 2) - 1, 2) /
+    (3 * sea_level_molecular_density * pow(wavelength, 4)) *
+    exp(-height/rayleigh_scale_height);
+}
+double sky::rayleigh_extinction_coefficient(const double height, const double wavelength) const {
+    return rayleigh_scattering_coefficient(height, wavelength);
 }
 
-double sky::raleigh_phase_function(const glm::vec3 light_direction, const glm::vec3 view_direction) {
-    const double my = cos(glm::angle(light_direction, view_direction));
-    return raleigh_phase_function(my);
+double sky::rayleigh_phase_function(const glm::vec3 light_direction, const glm::vec3 view_direction) const {
+    return 3 / (16 * M_PI) * (1 + pow(cos_similarity(light_direction, view_direction), 2));
 }
 
-double sky::raleigh_phase_function(const double µ) {
-    return 3/16*M_PI(1+pow(µ,2));
+double sky::mie_phase_function(const glm::vec3 light_direction, const glm::vec3 view_direction) const {
+    const double my = cos_similarity(light_direction, view_direction);
+    return
+    3 / (8 * M_PI) *
+    ((1-pow(medium_anisotropy, 2)) * (1 + pow(my, 2))) /
+    ((2+pow(medium_anisotropy, 2))*pow(1 + pow(medium_anisotropy, 2) - 2 * medium_anisotropy * my, 3.0/2.0)) ;
 }
 
+double sky::cos_similarity(const glm::vec3 light_direction, const glm::vec3 view_direction) {
+    return cos(angle(light_direction, view_direction));
+}
+
+//TODO Optical Depth
