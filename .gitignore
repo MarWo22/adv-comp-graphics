@@ -4,3 +4,4 @@ cmake-build-debug
 /build/main.exe
 /build/shaders
 /build/imgui.ini
+/build/assets/

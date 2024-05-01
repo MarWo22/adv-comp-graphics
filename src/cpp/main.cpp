@@ -1,180 +1,185 @@
-#include "imgui.h"
-#include "glm/glm.hpp"
-#define STB_IMAGE_IMPLEMENTATION
-#include "stb_image.h"
-#define STB_IMAGE_WRITE_IMPLEMENTATION
-#include "stb_image_write.h"
-#include "shading.h"
 #include <GL/glew.h>
-#include <GLFW/glfw3.h>
-#include <fstream>
+#include <chrono>
 #include <iostream>
+
+#include <imgui.h>
+#include <GLFW/glfw3.h>
 #include "imgui/imgui_impl_glfw.h"
 #include "imgui/imgui_impl_opengl3.h"
-#include "gl_misc.h"
 
+#include <glm/ext.hpp>
 
-float g_clearColor[3] = { 0.2f, 0.2f, 0.8f };
+using namespace glm;
 
-glm::vec3 g_triangleColor = { 1, 1, 1 };
+#include "textures/texture.h"
+#include "shader.h"
+#include "camera.h"
 
-GLuint vertexArrayObject;
-GLuint newVertexArrayObject;
-GLuint shaderProgram;
+///////////////////////////////////////////////////////////////////////////////
+// Various globals
+///////////////////////////////////////////////////////////////////////////////
+float currentTime = 0.0f;
+float previousTime = 0.0f;
+float deltaTime = 0.0f;
+int windowWidth, windowHeight;
 
-void gui()
+GLuint backgroundVAO;
+GLuint quadVAO;
+
+float environment_multiplier = 1.5f;
+Shader background;
+Shader simpleShader;
+Texture environmentMap;
+
+Camera camera;
+
+void loadShaders()
 {
-    ImGui::ColorEdit3("clear color", g_clearColor);
-    ImGui::ColorEdit3("triangle color", &g_triangleColor.x);
-    ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate,
-                ImGui::GetIO().Framerate);
+    background = Shader("./shaders/fullscreenQuad.vert", "./shaders/background.frag");
+    simpleShader = Shader("./shaders/simple.vert", "./shaders/simple.frag");
 }
 
+void loadTextures()
+{
+    environmentMap = Texture("./assets/lighting-maps/001.hdr");
+}
+
+void generateQuad()
+{
+    // Define vertex data for a quad (two triangles)
+    GLfloat vertices[] = {
+            // Positions
+            -100.0f, 0.0f, -100.0f,
+            -100.0f, 0.0f,  100.0f,
+            100.0f, 0.0f,  100.0f,
+            100.0f, 0.0f, -100.0f,
+    };
+
+    // Define indices for the quad
+    GLuint indices[] = {
+            0, 1, 2,
+            0, 2, 3,
+    };
+    glGenVertexArrays(1, &quadVAO);
+    GLuint positionBuffer, indexBuffer;
+
+    glGenBuffers(1, &positionBuffer);
+    glGenBuffers(1, &indexBuffer);
+    glBindVertexArray(quadVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, positionBuffer);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexBuffer);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+
+    glVertexAttribPointer(0, 3, GL_FLOAT, false, 0, nullptr);
+    glEnableVertexAttribArray(0);
+
+}
+
+void generateBackground()
+{
+    glGenVertexArrays(1, &backgroundVAO);
+    static const glm::vec2 positions[] = { { -1.0f, -1.0f }, { 1.0f, -1.0f }, { 1.0f, 1.0f },
+                                           { -1.0f, -1.0f }, { 1.0f, 1.0f },  { -1.0f, 1.0f } };
+    GLuint buffer = 0;
+    glGenBuffers(1, &buffer);
+    glBindBuffer(GL_ARRAY_BUFFER, buffer);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(positions), positions, GL_STATIC_DRAW);
+
+    // Now attach buffer to vertex array object.
+    glBindVertexArray(backgroundVAO);
+    glVertexAttribPointer(0, 2, GL_FLOAT, false, 0, nullptr);
+    glEnableVertexAttribArray(0);
+
+    glBindVertexArray(0);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+}
+
+
+///////////////////////////////////////////////////////////////////////////////
+/// This function is called once at the start of the program and never again
+///////////////////////////////////////////////////////////////////////////////
 void initialize()
 {
-    const float positions[] = {
-            //	 X      Y     Z
-            0.0f,  0.5f,  1.0f, // v0
-            -0.5f, -0.5f, 1.0f, // v1
-            0.5f,  -0.5f, 1.0f  // v2
-    };
-    GLuint positionBuffer;
-    glGenBuffers(1, &positionBuffer);
+    camera = Camera(vec3(-70.0f, 50.0f, 70.0f), 45.f, 25.f, 5.f, 0.4f);
+    loadShaders();
+    loadTextures();
+    generateBackground();
+    generateQuad();
+    glEnable(GL_DEPTH_TEST); // enable Z-buffering
+    glEnable(GL_CULL_FACE);  // enables backface culling
 
-    // Set the newly created buffer as the current one
-    glBindBuffer(GL_ARRAY_BUFFER, positionBuffer);
-    // Send the vertex position data to the current buffer
-    glBufferData(GL_ARRAY_BUFFER, sizeof(positions), positions,
-                 GL_STATIC_DRAW);
-    //////////////////////////////////////////////////////////////////////////////
-    // Vertex colors
-    //
-    // Task 3: Change these colors to something more fun.
-    //////////////////////////////////////////////////////////////////////////////
-    // Define the colors for each of the three vertices of the triangle
-    const float colors[] = {
-            //   R     G     B
-            1.0f, 1.0f, 1.0f, // White
-            1.0f, 1.0f, 1.0f, // White
-            1.0f, 1.0f, 1.0f  // White
-    };
-    // Create a handle for the vertex color buffer
-    GLuint colorBuffer;
-    glGenBuffers(1, &colorBuffer);
-    // Set the newly created buffer as the current one
-    glBindBuffer(GL_ARRAY_BUFFER, colorBuffer);
-    // Send the vertex color data to the current buffer
-    glBufferData(GL_ARRAY_BUFFER, sizeof(colors), colors, GL_STATIC_DRAW);
 
-    //////////////////////////////////////////////////////////////////////////////
-    // Create a vertex array object and connect the vertex buffer objects to it
-    //
-    // See OpenGL Spec §2.10
-    // - http://www.cse.chalmers.se/edu/course/TDA361/glspec30.20080923.pdf#page=64
-    //////////////////////////////////////////////////////////////////////////////
-    glGenVertexArrays(1, &vertexArrayObject);
-    // Bind the vertex array object
-    // The following calls will affect this vertex array object.
-    glBindVertexArray(vertexArrayObject);
-    // Makes positionBuffer the current array buffer for subsequent calls.
-    glBindBuffer(GL_ARRAY_BUFFER, positionBuffer);
-    // Attaches positionBuffer to vertexArrayObject, in the 0th attribute location
-    glVertexAttribPointer(0, 3, GL_FLOAT, false /*normalized*/, 0 /*stride*/, 0 /*offset*/);
-    // Makes colorBuffer the current array buffer for subsequent calls.
-    glBindBuffer(GL_ARRAY_BUFFER, colorBuffer);
-    // Attaches colorBuffer to vertexArrayObject, in the 1st attribute location
-    glVertexAttribPointer(1, 3, GL_FLOAT, false /*normalized*/, 0 /*stride*/, 0 /*offset*/);
-    glEnableVertexAttribArray(0); // Enable the vertex position attribute
-    glEnableVertexAttribArray(1); // Enable the vertex color attribute
 
-    //////////////////////////////////////////////////////////////////////////////
-    // Task 4: Add two new triangles. First by creating another vertex array
-    //		   object, and then by adding a triangle to an existing VAO.
-    //////////////////////////////////////////////////////////////////////////////
-
-    const float newPositions[] = {
-            0.75f, 0.75f, 0.75f,
-            0.8f, 0.5f, 1.f,
-            0.5f, 0.5f, 0.5f
-                        -0.75f, -0.75f, 0.75f,
-            -0.8f, -0.5f, 1.f,
-            -0.5f, -0.5f, 0.5f
-    };
-
-    const float newColors[] = {
-            0.5f, 1.0f, 1.0f,
-            1.0f, 1.0f, 1.0f,
-            1.0f, 1.0f, 1.0f,
-            1.0f, 0.2f, 0.3f,
-            0.1f, 0.5f, 0.5f,
-            1, 0.4, 0.2
-    };
-
-    GLuint newPositionBuffer;
-    glGenBuffers(1, &newPositionBuffer);
-    glBindBuffer(GL_ARRAY_BUFFER, newPositionBuffer);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(newPositions), newPositions,
-                 GL_STATIC_DRAW);
-
-    GLuint newColorBuffer;
-    glGenBuffers(1, &newColorBuffer);
-    glBindBuffer(GL_ARRAY_BUFFER, newColorBuffer);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(newColors), newColors, GL_STATIC_DRAW);
-
-    glGenVertexArrays(1, &newVertexArrayObject);
-    glBindVertexArray(newVertexArrayObject);
-    glBindBuffer(GL_ARRAY_BUFFER, newPositionBuffer);
-    glVertexAttribPointer(0, 3, GL_FLOAT, false /*normalized*/, 0 /*stride*/, 0 /*offset*/);
-    glBindBuffer(GL_ARRAY_BUFFER, newColorBuffer);
-    glVertexAttribPointer(1, 3, GL_FLOAT, false /*normalized*/, 0 /*stride*/, 0 /*offset*/);
-    glEnableVertexAttribArray(0); // Enable the vertex position attribute
-    glEnableVertexAttribArray(1); // Enable the vertex color attribute
-
-    ///////////////////////////////////////////////////////////////////////////
-    // Create shaders
-    ///////////////////////////////////////////////////////////////////////////
-    shaderProgram = shading::loadShaderProgram("shaders/simple.vert", "shaders/simple.frag", false);
 }
 
+void drawQuad(mat4 viewMatrix, mat4 projectionMatrix)
+{
+    simpleShader.Bind();
+    simpleShader.SetUniform("modelViewProjectionMatrix", projectionMatrix * viewMatrix);
+    glBindVertexArray(quadVAO);
+    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);
+}
+
+
+void drawBackground(const mat4& viewMatrix, const mat4& projectionMatrix)
+{
+    background.Bind();
+    background.SetUniform("environment_multiplier", environment_multiplier);
+    background.SetUniform("inv_PV", inverse(projectionMatrix * viewMatrix));
+    background.SetUniform("camera_pos", camera.Pos());
+
+    glDisable(GL_DEPTH_TEST);
+    glBindVertexArray(backgroundVAO);
+    glDrawArrays(GL_TRIANGLES, 0, 6);
+    glBindVertexArray(0);
+    glEnable(GL_DEPTH_TEST);
+}
 
 ///////////////////////////////////////////////////////////////////////////////
 /// This function will be called once per frame, so the code to set up
 /// the scene for rendering should go here
 ///////////////////////////////////////////////////////////////////////////////
-void display(void)
+void display()
 {
-    glClearColor(g_clearColor[0], g_clearColor[1], g_clearColor[2], 1.0); // Set clear color
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // Clears the color buffer and the z-buffer
-    // Instead of glClear(GL_BUFFER) the call should be glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
 
-    // We disable backface culling for this tutorial, otherwise care must be taken with the winding order
-    // of the vertices. It is however a lot faster to enable culling when drawing large scenes.
-    glDisable(GL_CULL_FACE);
+    ///////////////////////////////////////////////////////////////////////////
+    // setup matrices
+    ///////////////////////////////////////////////////////////////////////////
+    mat4 projMatrix = perspective(radians(camera.Fov()), float(windowWidth) / float(windowHeight), 5.0f, 2000.0f);
+    environmentMap.Bind(GL_TEXTURE6);
 
-    // Set the Shader Program to use
-    glUseProgram(shaderProgram); // Set the shader program to use for this draw call
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glViewport(0, 0, windowWidth, windowHeight);
+    glClearColor(0.2f, 0.2f, 0.8f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    // Task 5: Set the `triangleColor` uniform in the shader to `g_triangleColor`
+    drawBackground(camera.ViewMatrix(), projMatrix);
+    drawQuad(camera.ViewMatrix(), projMatrix);
+}
 
-    // Bind the vertex array object that contains all the vertex data.
-    glBindVertexArray(vertexArrayObject);
-    // Submit triangles from currently bound vertex array object.
-    shading::setUniform(2, g_triangleColor);
-    glDrawArrays(GL_TRIANGLES, 0, 3); // Render 1 triangle
+void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods)
+{
+    if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
+    {
+        if (glfwGetInputMode(window, GLFW_CURSOR) == GLFW_CURSOR_NORMAL)
+            glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+        else
+            glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+    }
+    camera.HandleKeyInput(key, action);
+}
 
-
-    // Task 4: Render the second VAO
-    shading::setUniform(2, glm::vec3(1, 1, 1));
-    glBindVertexArray(newVertexArrayObject);
-    glDrawArrays(GL_TRIANGLES, 0, 6);
-
-    // Task 5: Set the `triangleColor` uniform to white
-
-    glUseProgram(0); // "unsets" the current shader program. Not really necessary.
+void mouseCallback(GLFWwindow* window, double xPos, double yPos)
+{
+    if (glfwGetInputMode(window, GLFW_CURSOR) == GLFW_CURSOR_DISABLED)
+        camera.HandleMouseInput(xPos, yPos, deltaTime);
 }
 
 
-int main(void)
+
+int main()
 {
     GLFWwindow* window;
 
@@ -184,7 +189,7 @@ int main(void)
         return -1;
 
     /* Create a windowed mode window and its OpenGL context */
-    window = glfwCreateWindow(640, 480, "Hello World", NULL, NULL);
+    window = glfwCreateWindow(1280, 720, "Hello World", NULL, NULL);
     if (!window)
     {
         glfwTerminate();
@@ -201,15 +206,27 @@ int main(void)
     }
 
     initialize();
-
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    glfwSetKeyCallback(window, keyCallback);
+    glfwSetCursorPosCallback(window, mouseCallback);
     ImGui::CreateContext();
     ImGui_ImplGlfw_InitForOpenGL(window, true);
     ImGui_ImplOpenGL3_Init();
     ImGui::StyleColorsDark();
 
+    auto startTime = std::chrono::system_clock::now();
+
     /* Loop until the user closes the window */
     while (!glfwWindowShouldClose(window))
     {
+        std::chrono::duration<float> timeSinceStart = std::chrono::system_clock::now() - startTime;
+        previousTime = currentTime;
+        currentTime = timeSinceStart.count();
+        deltaTime = currentTime - previousTime;
+
+        glfwGetWindowSize(window, &windowWidth, &windowHeight);
+        glfwPollEvents();
+        camera.Update(deltaTime);
         /* Render here */
         glClear(GL_COLOR_BUFFER_BIT);
 
@@ -217,7 +234,6 @@ int main(void)
         ImGui_ImplOpenGL3_NewFrame();
         ImGui::NewFrame();
         display();
-        gui();
 
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
