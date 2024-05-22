@@ -18,11 +18,17 @@ include_directories(${STB_INCLUDE_DIR})
 add_executable(main
         src/cpp/main.cpp
         src/cpp/gl_misc.cpp
-        src/cpp/shading.cpp
+        src/cpp/shader.cpp
         src/cpp/imgui/imgui_impl_glfw.cpp
         src/cpp/imgui/imgui_impl_opengl3.cpp
-        src/cpp/sky/sky_physics.cpp
-        src/cpp/sky/sky_physics.h
+        src/cpp/textures/texture.cpp
+        src/cpp/textures/texture.h
+        src/cpp/textures/mipmap.cpp
+        src/cpp/textures/mipmap.h
+        src/cpp/textures/image.cpp
+        src/cpp/textures/image.h
+        src/cpp/Camera.cpp
+        src/cpp/Camera.h
 )
 
 find_package(OpenGL REQUIRED)
@@ -49,4 +55,20 @@ file(GLOB SHADER_FILES
 foreach(SHADER_FILE ${SHADER_FILES})
     get_filename_component(FILE_NAME ${SHADER_FILE} NAME)
     configure_file(${SHADER_FILE} ${CMAKE_BINARY_DIR}/shaders/${FILE_NAME} COPYONLY)
+endforeach()
+
+# Get all files in the 'assets' directory and its subdirectories
+file(GLOB_RECURSE ASSET_FILES_AND_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/assets/*)
+
+foreach(ASSET_FILE_OR_DIR ${ASSET_FILES_AND_DIRS})
+    # Get the relative path of the file or directory
+    file(RELATIVE_PATH REL_PATH ${CMAKE_CURRENT_SOURCE_DIR}/assets ${ASSET_FILE_OR_DIR})
+
+    if(IS_DIRECTORY ${ASSET_FILE_OR_DIR})
+        # If it's a directory, create it in the destination directory
+        file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/assets/${REL_PATH})
+    else()
+        # If it's a file, copy it to the destination directory
+        configure_file(${ASSET_FILE_OR_DIR} ${CMAKE_BINARY_DIR}/assets/${REL_PATH} COPYONLY)
+    endif()
 endforeach()
