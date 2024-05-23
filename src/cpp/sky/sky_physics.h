@@ -1,24 +1,36 @@
 #ifndef MAIN_SKY_PHYSICS_H
 #define MAIN_SKY_PHYSICS_H
 #include <map>
+
+#include "glm/fwd.hpp"
 #include "glm/vec3.hpp"
 
-class sky {
+class atmosphere {
 public:
+
+    atmosphere(
+        glm::vec3 sunDirection = glm::vec3(0,1,0),
+        float earthRadius = 6371e3, // https://en.wikipedia.org/wiki/Earth
+        float atmosphereRadius = 6371e4 //
+        // TODO Finish this
+        ) :
+    sun_direction(sunDirection)
+    {}
+
     ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     /// GENERAL
     ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-    /// In kilometers. https://en.wikipedia.org/wiki/Earth
-    double earth_radius = 6371.0;
-    /// In kilometers. https://en.wikipedia.org/wiki/Atmosphere_of_Earth
-    double atmosphere_radius = earth_radius * 1.0157;
-    double atmospheric_thickness = 1.0;
-    double sea_level_molecular_density = 1.0;
-    double medium_anisotropy = 0.76;
-
-    /// "A general way to describe how a value fades away". In kilometers.
-    int air_refraction_index = 1;
+    /// Direction from which the sun is facing
+    glm::vec3 sun_direction;
+    /// Radius of the planet.
+    float planet_radius = 6371e3;
+    /// Radius of the atmosphere around the planet.
+    float atmosphere_radius = 6471e3;
+    /// Atmospheric thickness for Rayleigh scattering (Hr). Assumes density as uniform.
+    float rayleigh_atmospheric_thickness = 1.0;
+    /// Atmospheric thickness for Mie scattering (Hm). Assumes density as uniform.
+    float mie_atmospheric_thickness = 1.0;
 
     /// @param height Height above sea level.
     /// @return TODO

@@ -29,6 +29,7 @@ add_executable(main
         src/cpp/textures/image.h
         src/cpp/Camera.cpp
         src/cpp/Camera.h
+        src/cpp/sky/sky_physics.cpp
 )
 
 find_package(OpenGL REQUIRED)
