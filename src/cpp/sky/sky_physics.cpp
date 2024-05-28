@@ -9,6 +9,13 @@
 
 #include "cmath"
 #include "glm/vec3.hpp"
+#include "glm/detail/_noise.hpp"
+#include "glm/detail/_noise.hpp"
+#include "glm/detail/_noise.hpp"
+#include "glm/detail/_noise.hpp"
+#include "glm/detail/_noise.hpp"
+#include "glm/detail/_noise.hpp"
+#include "glm/ext/quaternion_exponential.hpp"
 #include "glm/gtc/constants.hpp"
 #include "glm/gtx/intersect.hpp"
 #include "glm/gtx/vector_angle.inl"
@@ -17,12 +24,12 @@
 //     return sea_level_molecular_density * exp(-height / atmospheric_thickness);
 // }
 
-// glm::vec3 atmosphere::beta_rayleigh_computed(const double height, const double wavelength) const {
-//     return
-//     8 * pow(M_PI, 3) * pow(pow(air_refraction_index, 2) - 1, 2) /
-//     (3 * molecular_density * pow(wavelength, 4)) *
-//     exp(-height/rayleigh_scale_height);
-// }
+glm::vec3 atmosphere::beta_rayleigh_computed(const float height) const {
+    return
+    8 * powf(M_PI, 3) * powf(powf(air_refraction_index, 2) - 1, 2) /
+    (3 * molecular_density * pow(wavelength_peak, glm::vec3(4))) *
+    expf(-height / rayleigh_scale_height);
+}
 
 // double atmosphere::rayleigh_extinction_coefficient(const double height, const double wavelength) const {
 //     return beta_rayleigh_computed(height, wavelength);
@@ -94,7 +101,7 @@ void renderSkydome(const glm::vec3 sunDir, const char *filename) {
 }
 
 
-glm::vec3 atmosphere::incident_light(glm::vec3 &origin, glm::vec3 &dir,
+glm::vec3 atmosphere::incident_light(glm::vec3 &origin, glm::vec3 &dir, bool computeR = false,
     float tMin = 0, float tMax = std::numeric_limits<float>::max(),
     int numSamples = 16, int numLightSamples = 8) const
 {
@@ -158,18 +165,16 @@ glm::vec3 atmosphere::incident_light(glm::vec3 &origin, glm::vec3 &dir,
         }
         if(j==numLightSamples) {
             glm::vec3 tau =
-                beta_rayleigh_constant * (opticalDepthR + opticalDepthLightR) +
-                beta_mie_constant * 1.1f * (opticalDepthM + opticalDepthLightM);
+                computeR ? beta_rayleigh_computed(height) : beta_rayleigh * (opticalDepthR + opticalDepthLightR) +
+                beta_mie * 1.1f * (opticalDepthM + opticalDepthLightM);
             glm::vec3 attenuation(exp(-tau.x), exp(-tau.y), exp(-tau.z));
             sumR += attenuation + hr;
             sumM += attenuation + hm;
         }
         tCurrent += segmentLength;
-
-
-        return (
-            sumR * beta_rayleigh_constant * phaseR +
-            sumM * beta_mie_constant      * phaseM
-            );
     }
+
+    return
+        sumR * (computeR ? beta_rayleigh_computed(length(origin)+planet_radius) : beta_rayleigh) * phaseR +
+        sumM * beta_mie * phaseM;
 }

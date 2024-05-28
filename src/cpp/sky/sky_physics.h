@@ -25,8 +25,8 @@ public:
     atmosphere_radius(atmosphereRadius),
     rayleigh_atmospheric_thickness(rayleighAtmosphericThickness),
     mie_atmospheric_thickness(mieAtmosphericThickness),
-    beta_rayleigh_constant(betaRayleigh),
-    beta_mie_constant(betaMie),
+    beta_rayleigh(betaRayleigh),
+    beta_mie(betaMie),
     molecular_density(molecularDensity),
     air_refraction_index(airRefractionIndex),
     rayleigh_scale_height(rayleighScaleHeight),
@@ -45,9 +45,9 @@ public:
     /// Atmospheric thickness for Mie scattering (Hm). Assumes density as uniform.
     float mie_atmospheric_thickness;
     /// Rayleigh scattering coefficient (βr). Assumes sea level.
-    glm::vec3 beta_rayleigh_constant;
+    glm::vec3 beta_rayleigh;
     /// Mie scattering coefficient (βm). Assumes sea level.
-    glm::vec3 beta_mie_constant;
+    glm::vec3 beta_mie;
     /// Assumes sea level. Measured in kg/m^3.
     float molecular_density;
     /// Assumes sea level.
@@ -62,7 +62,7 @@ public:
     /// @param height Height above sea level.
     /// @param wavelength
     /// @return Scattering coefficient (βr).
-    glm::vec3 beta_rayleigh_computed(float height);
+    glm::vec3 beta_rayleigh_computed(float height) const;
 
 
 
@@ -88,7 +88,7 @@ public:
     /// @return Raleigh phase value.
     float mie_phase_function(glm::vec3 light_direction, glm::vec3 view_direction) const;
 
-    glm::vec3 incident_light(glm::vec3 & origin, glm::vec3 & dir, float tMin, float tMax, int numSamples, int numLightSamples) const;
+    glm::vec3 incident_light(glm::vec3 & origin, glm::vec3 & dir, bool computeR, float tMin, float tMax, int numSamples, int numLightSamples) const;
 };
 
 #endif //MAIN_SKY_PHYSICS_H
