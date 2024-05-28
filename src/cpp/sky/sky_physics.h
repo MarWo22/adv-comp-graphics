@@ -1,84 +1,94 @@
 #ifndef MAIN_SKY_PHYSICS_H
 #define MAIN_SKY_PHYSICS_H
-#include <map>
 
 #include "glm/fwd.hpp"
 #include "glm/vec3.hpp"
 
 class atmosphere {
 public:
-
-    atmosphere(
+    /// Defaults are pertinent to the earth.
+    explicit atmosphere(
         glm::vec3 sunDirection = glm::vec3(0,1,0),
-        float earthRadius = 6371e3, // https://en.wikipedia.org/wiki/Earth
-        float atmosphereRadius = 6371e4 //
-        // TODO Finish this
+        float planetRadius = 6371e3,
+        float atmosphereRadius = 6371e4,
+        float rayleighAtmosphericThickness = 7994,
+        float mieAtmosphericThickness = 1200,
+        glm::vec3 betaRayleigh = glm::vec3(3.8e-6f, 13.5e-6f, 33.1e-6f),
+        glm::vec3 betaMie = glm::vec3(21e-6f),
+        float molecularDensity = 1.2f,// kg/m^3
+        float airRefractionIndex = 1.0003f,
+        float rayleighScaleHeight = 8.0e3f,
+        float mieScaleHeight = 1.2e3f
         ) :
-    sun_direction(sunDirection)
+    sun_direction(sunDirection),
+    planet_radius(planetRadius),
+    atmosphere_radius(atmosphereRadius),
+    rayleigh_atmospheric_thickness(rayleighAtmosphericThickness),
+    mie_atmospheric_thickness(mieAtmosphericThickness),
+    beta_rayleigh_constant(betaRayleigh),
+    beta_mie_constant(betaMie),
+    molecular_density(molecularDensity),
+    air_refraction_index(airRefractionIndex),
+    rayleigh_scale_height(rayleighScaleHeight),
+    mie_scale_height(mieScaleHeight)
     {}
 
-    ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    /// GENERAL
-    ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     /// Direction from which the sun is facing
     glm::vec3 sun_direction;
     /// Radius of the planet.
-    float planet_radius = 6371e3;
+    float planet_radius;
     /// Radius of the atmosphere around the planet.
-    float atmosphere_radius = 6471e3;
+    float atmosphere_radius;
     /// Atmospheric thickness for Rayleigh scattering (Hr). Assumes density as uniform.
-    float rayleigh_atmospheric_thickness = 1.0;
+    float rayleigh_atmospheric_thickness;
     /// Atmospheric thickness for Mie scattering (Hm). Assumes density as uniform.
-    float mie_atmospheric_thickness = 1.0;
+    float mie_atmospheric_thickness;
+    /// Rayleigh scattering coefficient (βr). Assumes sea level.
+    glm::vec3 beta_rayleigh_constant;
+    /// Mie scattering coefficient (βm). Assumes sea level.
+    glm::vec3 beta_mie_constant;
+    /// Assumes sea level. Measured in kg/m^3.
+    float molecular_density;
+    /// Assumes sea level.
+    float air_refraction_index;
+    /// "A general way to describe how a value fades away".
+    float rayleigh_scale_height;
+    /// "A general way to describe how a value fades away".
+    float mie_scale_height;
 
-    /// @param height Height above sea level.
-    /// @return TODO
-    double molecular_density(double height) const;
 
-    static double cos_similarity(glm::vec3 vec, glm::vec3 vec3);
-
-    ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    /// RAYLEIGH
-    ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-    /// "A general way to describe how a value fades away". In kilometers.
-    double rayleigh_scale_height = 8.0;
-
-    /// Rayleigh β-scattering coefficient.
+    /// Rayleigh scattering coefficient (βr).
     /// @param height Height above sea level.
     /// @param wavelength
-    /// @return Scattering coefficient (β).
-    double rayleigh_scattering_coefficient(double height, double wavelength) const;
+    /// @return Scattering coefficient (βr).
+    glm::vec3 beta_rayleigh_computed(float height);
 
-    double rayleigh_extinction_coefficient(double height, double wavelength) const;
 
-    /// @param light_direction Incoming light direction.
-    /// @param view_direction View direction from camera.
+
+    /// Cosine smilarity between two angles.
+    static float cos_sim(glm::vec3 a, glm::vec3 b);
+
+
+    float rayleigh_extinction_coefficient(double height, double wavelength) const;
+
     /// @return Raleigh phase coefficient value.
-    double rayleigh_phase_function(glm::vec3 light_direction, glm::vec3 view_direction) const;
+    float rayleigh_phase(glm::vec3 view_direction) const;
 
-    /// Precomputed Rayleigh coefficient values and their respective wavelengths. Keys in nanometers.
-    std::map<double, double> scatter_coefficients = {
-        {440, 33.1e-6}, // Blue
-        {550, 13.5e-6}, // Green
-        {680, 5.8e-6}   // Red
-    };
+    glm::vec3 wavelength_peak = glm::vec3(
+        680e-6f,    // Red
+        550e-6f,    // Blue
+        440e-6f     // Green
+        );
 
-    ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    /// MIE
-    ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    double mie_scale_height = 1.2;
-
-    double mie_scattering_coefficient = 210e-5;
-
-    double mie_extinction_coefficient = mie_scattering_coefficient * 1.1;
+    float mie_extinction_coefficient();
 
     /// @param light_direction Incoming light direction.
     /// @param view_direction View direction from camera.
     /// @return Raleigh phase value.
-    double mie_phase_function(glm::vec3 light_direction, glm::vec3 view_direction) const;
+    float mie_phase_function(glm::vec3 light_direction, glm::vec3 view_direction) const;
 
-}; // sky
+    glm::vec3 incident_light(glm::vec3 & origin, glm::vec3 & dir, float tMin, float tMax, int numSamples, int numLightSamples) const;
+};
 
 #endif //MAIN_SKY_PHYSICS_H
