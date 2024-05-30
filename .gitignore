@@ -5,3 +5,4 @@ cmake-build-debug
 /build/shaders
 /build/imgui.ini
 /build/assets/
+/build/*.ppm

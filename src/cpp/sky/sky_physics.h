@@ -9,8 +9,8 @@ public:
     /// Defaults are pertinent to the earth.
     explicit atmosphere(
         glm::vec3 sunDirection = glm::vec3(0,1,0),
-        float planetRadius = 6371e3,
-        float atmosphereRadius = 6371e4,
+        float planetRadius = 6360e3,
+        float atmosphereRadius = 6420e3,
         float rayleighAtmosphericThickness = 7994,
         float mieAtmosphericThickness = 1200,
         glm::vec3 betaRayleigh = glm::vec3(3.8e-6f, 13.5e-6f, 33.1e-6f),
@@ -86,9 +86,9 @@ public:
     /// @return Raleigh phase value.
     float mie_phase_function(glm::vec3 light_direction, glm::vec3 view_direction) const;
 
-    glm::vec3 incident_light(glm::vec3 & origin, glm::vec3 & dir, bool computeR, float tMin, float tMax, int numSamples, int numLightSamples) const;
-
-    static void render_skydome(glm::vec3 sunDir, const char *filename);
+    glm::vec3 incident_light(const glm::vec3& origin, const glm::vec3& dir, bool computeR = false,
+                             float tMin = 0, float tMax = std::numeric_limits<float>::max(),
+                             int numSamples = 16, int numLightSamples = 8) const;
 };
 
 #endif //MAIN_SKY_PHYSICS_H

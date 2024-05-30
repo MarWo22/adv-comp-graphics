@@ -11,6 +11,8 @@ uniform vec3 camera_pos;
 uniform float environment_multiplier;
 #define PI 3.14159265359
 
+
+
 void main()
 {
 	// Calculate the world-space position of this fragment on the near plane
@@ -22,7 +24,7 @@ void main()
 	float theta = acos(max(-1.0f, min(1.0f, dir.y)));
 	float phi = atan(dir.z, dir.x);
 	if(phi < 0.0f)
-		phi = phi + 2.0f * PI;
+	phi = phi + 2.0f * PI;
 	// Use these to lookup the color in the environment map
 	vec2 lookup = vec2(phi / (2.0 * PI), 1 - theta / PI);
 	fragmentColor = environment_multiplier * texture(environmentMap, lookup);

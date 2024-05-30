@@ -16,6 +16,9 @@ set(STB_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/lib/stb)
 include_directories(${STB_INCLUDE_DIR})
 
 add_executable(main
+        # src/cpp/sky/example/skycolor.cpp
+        # src/cpp/sky/example/acceleration.cpp
+        # src/cpp/sky/example/teapotdata.h
         src/cpp/main.cpp
         src/cpp/gl_misc.cpp
         src/cpp/shader.cpp
