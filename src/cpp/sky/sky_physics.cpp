@@ -15,6 +15,8 @@
 #include "glm/detail/_noise.hpp"
 #include "glm/detail/_noise.hpp"
 #include "glm/detail/_noise.hpp"
+#include "glm/detail/_noise.hpp"
+#include "glm/detail/_noise.hpp"
 #include "glm/ext/quaternion_exponential.hpp"
 #include "glm/gtc/constants.hpp"
 #include "glm/gtx/intersect.hpp"
@@ -53,7 +55,7 @@ float atmosphere::cos_sim(const glm::vec3 a, const glm::vec3 b) {
 
 //TODO Optical Depth
 
-void renderSkydome(const glm::vec3 sunDir, const char *filename) {
+void atmosphere::render_skydome(const glm::vec3 sunDir, const char *filename) {
     atmosphere atmosphere(sunDir);
 
     auto t0 = std::chrono::high_resolution_clock::now();

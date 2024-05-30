@@ -9,6 +9,8 @@
 
 #include <glm/ext.hpp>
 
+#include "sky/sky_physics.h"
+
 using namespace glm;
 
 #include "textures/texture.h"
@@ -250,5 +252,6 @@ int main()
     ImGui::DestroyContext();
 
     glfwTerminate();
+
     return 0;
 }

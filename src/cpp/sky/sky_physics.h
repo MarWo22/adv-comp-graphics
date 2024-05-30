@@ -64,8 +64,6 @@ public:
     /// @return Scattering coefficient (βr).
     glm::vec3 beta_rayleigh_computed(float height) const;
 
-
-
     /// Cosine smilarity between two angles.
     static float cos_sim(glm::vec3 a, glm::vec3 b);
 
@@ -89,6 +87,8 @@ public:
     float mie_phase_function(glm::vec3 light_direction, glm::vec3 view_direction) const;
 
     glm::vec3 incident_light(glm::vec3 & origin, glm::vec3 & dir, bool computeR, float tMin, float tMax, int numSamples, int numLightSamples) const;
+
+    static void render_skydome(glm::vec3 sunDir, const char *filename);
 };
 
 #endif //MAIN_SKY_PHYSICS_H
