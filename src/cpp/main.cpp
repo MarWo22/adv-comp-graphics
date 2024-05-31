@@ -169,17 +169,17 @@ void drawBackground(const mat4& viewMatrix, const mat4& projectionMatrix)
     /// Direction from which the sun is facing
     background.SetUniform("sun_direction", atmosphere.sun_direction);
     /// Radius of the planet.
-    background.SetUniform("planet_radius", atmosphere.planet_radius);
+    background.SetUniform("planet_radius", GuiVariables::s_PlanetRadius);
     /// Radius of the atmosphere around the planet.
-    background.SetUniform("atmosphere_radius", atmosphere.atmosphere_radius);
+    background.SetUniform("atmosphere_radius", GuiVariables::s_AtmosphereRadius);
     /// Atmospheric thickness for Rayleigh scattering (Hr). Assumes density as uniform.
     background.SetUniform("rayleigh_atmospheric_thickness", atmosphere.rayleigh_atmospheric_thickness);
     /// Atmospheric thickness for Mie scattering (Hm). Assumes density as uniform.
     background.SetUniform("mie_atmospheric_thickness", atmosphere.mie_atmospheric_thickness);
     /// Rayleigh scattering coefficient (βr). Assumes sea level.
-    background.SetUniform("beta_rayleigh", atmosphere.beta_rayleigh);
+    background.SetUniform("beta_rayleigh", vec3(GuiVariables::s_BetaRayleigh[0], GuiVariables::s_BetaRayleigh[1], GuiVariables::s_BetaRayleigh[2]));
     /// Mie scattering coefficient (βm). Assumes sea level.
-    background.SetUniform("beta_mie", atmosphere.beta_mie);
+    background.SetUniform("beta_mie", vec3(GuiVariables::s_BetaMie));
     /// Assumes sea level. Measured in kg/m^3.
     background.SetUniform("molecular_density", atmosphere.molecular_density);
     /// Assumes sea level.
@@ -191,11 +191,11 @@ void drawBackground(const mat4& viewMatrix, const mat4& projectionMatrix)
     /// Wavelength peaks
     background.SetUniform("wavelength_peak", atmosphere.wavelength_peak);
     /// Samples
-    background.SetUniform("num_samples", 16);
+    background.SetUniform("num_samples", GuiVariables::s_NumberOfSamples);
     // Light Samples
-    background.SetUniform("num_light_samples", 8);
+    background.SetUniform("num_light_samples", GuiVariables::s_NumberOfLightSamples);
     // Use Texture
-    background.SetUniform("use_texture", 1);
+    background.SetUniform("use_texture", GuiVariables::s_UseEnvTexture ? 1 : 0);
 
     background.SetUniform("environment_multiplier", environment_multiplier);
     background.SetUniform("inv_PV", inverse(projectionMatrix * viewMatrix));
@@ -309,6 +309,25 @@ void gui()
     if (ImGui::Button("Flush caches"))
     {
         terrainManager.FlushBuffer();
+    }
+
+    if(ImGui::CollapsingHeader("Atmosphere"))
+    {
+        if(ImGui::Button("Point sun to view angle"))
+        {
+            atmosphere.sun_direction = normalize(camera.Dir());
+        }
+        ImGui::Checkbox("Use Environment Texture", &GuiVariables::s_UseEnvTexture);
+
+        ImGui::SliderFloat3("Rayleigh Scattering", &GuiVariables::s_BetaRayleigh[0], 1.0e-6f, 50.0e-6f, "%.2e");
+
+        ImGui::SliderFloat("Mie Scattering", &GuiVariables::s_BetaMie, 1.0e-6f, 50.0e-6f, "%.2e");
+
+        ImGui::SliderFloat("Atmosphere Radius", &GuiVariables::s_AtmosphereRadius, 1, 64200e3, "3.2e");
+        ImGui::SliderFloat("Planet Radius", &GuiVariables::s_PlanetRadius, 1, 63200e3, "3.2e");
+
+        ImGui::SliderInt("Samples", &GuiVariables::s_NumberOfSamples, 1, 128);
+        ImGui::SliderInt("Light Samples", &GuiVariables::s_NumberOfLightSamples, 1, 64);
     }
 }
 

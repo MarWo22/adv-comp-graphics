@@ -4,10 +4,10 @@
 
 #ifndef MAIN_GUIVARIABLES_H
 #define MAIN_GUIVARIABLES_H
+#include "glm/vec3.hpp"
 
 
-class GuiVariables
-{
+class GuiVariables {
 public:
     GuiVariables() = delete;
 
@@ -38,6 +38,14 @@ public:
     static float s_LODdistance;
     static int s_RenderDistance;
 
+    // Atmosphere
+    static bool s_UseEnvTexture;
+    static float s_BetaRayleigh[3];
+    static float s_BetaMie;
+    static float s_AtmosphereRadius;
+    static float s_PlanetRadius;
+    static int s_NumberOfSamples;
+    static int s_NumberOfLightSamples;
 };
 
 
