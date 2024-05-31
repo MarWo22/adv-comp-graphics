@@ -100,6 +100,9 @@ void generateBackground()
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
+void startAtmosphere() {
+    atmosphere = Atmosphere();
+}
 
 ///////////////////////////////////////////////////////////////////////////////
 /// This function is called once at the start of the program and never again
@@ -114,7 +117,7 @@ void initialize()
     glEnable(GL_DEPTH_TEST); // enable Z-buffering
     glEnable(GL_CULL_FACE);  // enables backface culling
 
-    atmosphere = Atmosphere();
+    startAtmosphere();
 
 }
 
