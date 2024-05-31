@@ -25,4 +25,5 @@ float GuiVariables::s_PlanetRadius = 6360e3;
 float GuiVariables::s_AtmosphereRadius = 6420e3;
 int GuiVariables::s_NumberOfSamples = 16;
 int GuiVariables::s_NumberOfLightSamples = 8;
+bool GuiVariables::s_ComputeRayleigh = false;
 

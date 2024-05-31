@@ -195,7 +195,9 @@ void drawBackground(const mat4& viewMatrix, const mat4& projectionMatrix)
     // Light Samples
     background.SetUniform("num_light_samples", GuiVariables::s_NumberOfLightSamples);
     // Use Texture
-    background.SetUniform("use_texture", GuiVariables::s_UseEnvTexture ? 1 : 0);
+    background.SetUniform("use_texture", GuiVariables::s_UseEnvTexture);
+    // Use computed Rayleigh
+    background.SetUniform("compute_rayleigh", GuiVariables::s_ComputeRayleigh);
 
     background.SetUniform("environment_multiplier", environment_multiplier);
     background.SetUniform("inv_PV", inverse(projectionMatrix * viewMatrix));
@@ -319,8 +321,21 @@ void gui()
         }
         ImGui::Checkbox("Use Environment Texture", &GuiVariables::s_UseEnvTexture);
 
-        ImGui::SliderFloat3("Rayleigh Scattering", &GuiVariables::s_BetaRayleigh[0], 1.0e-6f, 50.0e-6f, "%.2e");
+        // static const char* current_item = NULL;
+        // if(ImGui::BeginCombo("Computed Rayleigh?", current_item))
+        // {
+        //
+        //     if(ImGui::Selectable("No", current_item == "No")) {
+        //         ImGui::SliderFloat3("Rayleigh Scattering", &GuiVariables::s_BetaRayleigh[0], 1.0e-6f, 50.0e-6f, "%.2e");
+        //     }
+        //     if(ImGui::Selectable("Yes", current_item == "Yes")) {
+        //         ImGui::Text("Hi");
+        //     }
+        //     ImGui::SetItemDefaultFocus();
+        //     ImGui::EndCombo();
+        // }
 
+        ImGui::SliderFloat3("Rayleigh Scattering", &GuiVariables::s_BetaRayleigh[0], 1.0e-6f, 50.0e-6f, "%.2e");
         ImGui::SliderFloat("Mie Scattering", &GuiVariables::s_BetaMie, 1.0e-6f, 50.0e-6f, "%.2e");
 
         ImGui::SliderFloat("Atmosphere Radius", &GuiVariables::s_AtmosphereRadius, 1, 64200e3, "3.2e");

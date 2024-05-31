@@ -41,7 +41,9 @@ uniform int num_samples;
 // Light Samples
 uniform int num_light_samples;
 // Use texture?
-uniform int use_texture;
+uniform bool use_texture;
+// Compute Rayleigh?
+uniform bool compute_rayleigh;
 
 bool solveQuadratic(float a, float b, float c, inout float x1, inout float x2)
 {
@@ -177,8 +179,8 @@ void main()
 	// Use these to lookup the color in the environment map
 	vec2 lookup = vec2(phi / (2.0 * PI), 1 - theta / PI);
 
-	vec3 sky_light = incident_light(vec3(camera_pos.x, camera_pos.y + planet_radius, camera_pos.z), dir, false, 0, (1.0 / 0.0) /* Hacky way to say infinity */, num_samples, num_light_samples);
+	vec3 sky_light = incident_light(vec3(camera_pos.x, camera_pos.y + planet_radius, camera_pos.z), dir, compute_rayleigh, 0, (1.0 / 0.0) /* Hacky way to say infinity */, num_samples, num_light_samples);
 
-	fragmentColor = vec4(sky_light, 1) * ((use_texture == 1) ? greyscale(texture(environmentMap, lookup)) : vec4(1)) * environment_multiplier;
+	fragmentColor = vec4(sky_light, 1) * ((use_texture) ? greyscale(texture(environmentMap, lookup)) : vec4(1)) * environment_multiplier;
 //	fragmentColor = environment_multiplier * texture(environmentMap, lookup) ;
 }

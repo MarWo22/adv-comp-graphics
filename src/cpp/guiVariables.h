@@ -46,6 +46,7 @@ public:
     static float s_PlanetRadius;
     static int s_NumberOfSamples;
     static int s_NumberOfLightSamples;
+    static bool s_ComputeRayleigh;
 };
 
 
