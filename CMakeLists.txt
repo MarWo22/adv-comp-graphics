@@ -33,6 +33,31 @@ add_executable(main
         src/cpp/Camera.cpp
         src/cpp/Camera.h
         src/cpp/sky/sky_physics.cpp
+        src/cpp/terrain/file.cpp
+        src/cpp/terrain/file.h
+        src/cpp/terrain/grid.cpp
+        src/cpp/terrain/grid.h
+        src/cpp/terrain/cell.cpp
+        src/cpp/terrain/cell.h
+        src/cpp/terrain/voxel.cpp
+        src/cpp/terrain/voxel.h
+        src/cpp/terrain/mapCache.h
+        src/cpp/frustum.cpp
+        src/cpp/frustum.h
+        src/cpp/terrain/new/chunk.cpp
+        src/cpp/terrain/new/chunk.h
+        src/cpp/terrain/new/block.cpp
+        src/cpp/terrain/new/block.h
+        src/cpp/terrain/new/chunkManager.cpp
+        src/cpp/terrain/new/chunkManager.h
+        src/cpp/guiVariables.cpp
+        src/cpp/guiVariables.h
+        src/cpp/terrain/new/density.cpp
+        src/cpp/terrain/new/density.h
+        src/cpp/terrain/new/terrainManager.cpp
+        src/cpp/terrain/new/terrainManager.h
+        src/cpp/terrain/hashing.h
+        src/cpp/terrain/new/terrainManagerData.cpp
 )
 
 find_package(OpenGL REQUIRED)

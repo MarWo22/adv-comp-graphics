@@ -1,0 +1,61 @@
+#version 430
+
+
+
+layout(local_size_x = 8, local_size_y = 8, local_size_z = 8) in;
+layout(rgba32f, binding = 0) uniform image3D out_density;
+layout(binding = 7) uniform sampler3D noise_oct1234;
+layout(binding = 8) uniform sampler3D noise_oct5678;
+
+
+
+uniform vec3 block_position;
+uniform float block_size;
+uniform int texture_channel;
+
+uniform int octaves;
+
+
+
+
+
+
+float density()
+{
+    float voxel_size = block_size / 32;
+    vec3 worldPos = block_position + gl_GlobalInvocationID * voxel_size;
+    vec3 texturePos = worldPos / 33.f;
+    float density = -worldPos.y + 20;
+    if (((octaves >> 1) & 1) == 1)
+        density += texture(noise_oct1234, texturePos * 4.03).x * 0.25f;
+    if (((octaves >> 2) & 1) == 1)
+        density += texture(noise_oct1234, texturePos * 1.96).y * 0.50f;
+    if (((octaves >> 3) & 1) == 1)
+        density += texture(noise_oct1234, texturePos * 1.01).z * 1.0f;
+    if (((octaves >> 4) & 1) == 1)
+        density += texture(noise_oct1234, texturePos * 0.48f).w * 2.0f;
+    if (((octaves >> 5) & 1) == 1)
+        density += texture(noise_oct5678, texturePos * 0.233f).x * 4.0f;
+    if (((octaves >> 6) & 1) == 1)
+        density += texture(noise_oct5678, texturePos * 0.129f).y * 8.0f;
+
+//    density += texture(noise_oct5678, texturePos * 0.0631f).z * 16.0f;
+//    density += texture(noise_oct5678, texturePos * 0.03112f).w * 32.0f;
+
+
+
+    return density;
+}
+
+void main() {
+    // get position to read/write data from
+
+    ivec3 pos = ivec3( gl_GlobalInvocationID.xyz );
+    // get value stored in the image
+
+    vec4 data = imageLoad(out_density, pos);
+    data[texture_channel] = density();
+
+    // store new value in image
+    imageStore( out_density, pos, data );
+}

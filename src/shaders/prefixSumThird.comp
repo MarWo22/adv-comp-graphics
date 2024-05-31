@@ -1,0 +1,16 @@
+#version 430
+
+layout(local_size_x = 1024, local_size_y = 1, local_size_z = 1) in;
+
+layout(std430, binding = 2) buffer vertex_count_buffer {
+    uint vertex_count[];
+};
+
+layout(std430, binding = 3) readonly buffer prefix_group_buffer {
+    uint prefix_group[];
+};
+
+void main()
+{
+    vertex_count[gl_GlobalInvocationID.x] += prefix_group[gl_WorkGroupID.x / 2];
+}

@@ -1,0 +1,60 @@
+#version 430
+
+int case_to_numpolys[256] = {
+0, 1, 1, 2, 1, 2, 2, 3,  1, 2, 2, 3, 2, 3, 3, 2,  1, 2, 2, 3, 2, 3, 3, 4,  2, 3, 3, 4, 3, 4, 4, 3,
+1, 2, 2, 3, 2, 3, 3, 4,  2, 3, 3, 4, 3, 4, 4, 3,  2, 3, 3, 2, 3, 4, 4, 3,  3, 4, 4, 3, 4, 5, 5, 2,
+1, 2, 2, 3, 2, 3, 3, 4,  2, 3, 3, 4, 3, 4, 4, 3,  2, 3, 3, 4, 3, 4, 4, 5,  3, 4, 4, 5, 4, 5, 5, 4,
+2, 3, 3, 4, 3, 4, 2, 3,  3, 4, 4, 5, 4, 5, 3, 2,  3, 4, 4, 3, 4, 5, 3, 2,  4, 5, 5, 4, 5, 2, 4, 1,
+1, 2, 2, 3, 2, 3, 3, 4,  2, 3, 3, 4, 3, 4, 4, 3,  2, 3, 3, 4, 3, 4, 4, 5,  3, 2, 4, 3, 4, 3, 5, 2,
+2, 3, 3, 4, 3, 4, 4, 5,  3, 4, 4, 5, 4, 5, 5, 4,  3, 4, 4, 3, 4, 5, 5, 4,  4, 3, 5, 2, 5, 4, 2, 1,
+2, 3, 3, 4, 3, 4, 4, 5,  3, 4, 4, 5, 2, 3, 3, 2,  3, 4, 4, 5, 4, 5, 5, 2,  4, 3, 5, 4, 3, 2, 4, 1,
+3, 4, 4, 5, 4, 5, 3, 4,  4, 5, 5, 2, 3, 4, 2, 1,  2, 3, 3, 2, 3, 4, 2, 1,  3, 2, 4, 1, 2, 1, 1, 0
+};
+
+layout(local_size_x = 32, local_size_y = 32, local_size_z = 1) in;
+layout(binding = 0) uniform sampler3D density_map;
+
+layout(std430, binding = 1) writeonly buffer vertex_buffer {
+    uint vertex_count[];
+};
+
+uniform int texture_channel;
+
+void main() {
+    // Size of one voxel
+    float voxelSize = 1.f / 32.f;
+    vec3 texelPosition = vec3(gl_GlobalInvocationID) * voxelSize;
+    float densities[8];
+
+    // Lookup the densities for these 8 vertices
+    densities[0] = texture(density_map, vec3(texelPosition))[texture_channel];
+    densities[1] = texture(density_map, vec3(texelPosition.x, texelPosition.y + voxelSize, texelPosition.z))[texture_channel];
+    densities[2] = texture(density_map, vec3(texelPosition.x + voxelSize, texelPosition.y + voxelSize, texelPosition.z))[texture_channel];
+    densities[3] = texture(density_map, vec3(texelPosition.x + voxelSize, texelPosition.y, texelPosition.z))[texture_channel];
+    densities[4] = texture(density_map, vec3(texelPosition.x, texelPosition.y, texelPosition.z +  voxelSize))[texture_channel];
+    densities[5] = texture(density_map, vec3(texelPosition.x, texelPosition.y + voxelSize, texelPosition.z + voxelSize))[texture_channel];
+    densities[6] = texture(density_map, vec3(texelPosition.x + voxelSize, texelPosition.y + voxelSize, texelPosition.z + voxelSize))[texture_channel];
+    densities[7] = texture(density_map, vec3(texelPosition.x + voxelSize, texelPosition.y, texelPosition.z + voxelSize))[texture_channel];
+
+    // Determine the case for each vertex, whether they should be rendered as terrain
+    int v0Case = densities[0] >= 0 ? 1 : 0;
+    int v1Case = densities[1] >= 0 ? 1 : 0;
+    int v2Case = densities[2] >= 0 ? 1 : 0;
+    int v3Case = densities[3] >= 0 ? 1 : 0;
+    int v4Case = densities[4] >= 0 ? 1 : 0;
+    int v5Case = densities[5] >= 0 ? 1 : 0;
+    int v6Case = densities[6] >= 0 ? 1 : 0;
+    int v7Case = densities[7] >= 0 ? 1 : 0;
+
+    // Logically concatinate the cases into one case
+    int caseIndex = 0 | v0Case | v1Case << 1 | v2Case << 2 | v3Case << 3 | v4Case << 4 | v5Case << 5 | v6Case << 6 | v7Case << 7;
+
+    // Lookup the number of polys this case generates
+    int numPolys = case_to_numpolys[caseIndex];
+
+    uint voxelIndex = gl_GlobalInvocationID.x + gl_GlobalInvocationID.y * 32 + gl_GlobalInvocationID.z * 1024;
+
+    uint packedValue = (caseIndex << 3) | numPolys;
+
+    vertex_count[voxelIndex] = packedValue;
+}
