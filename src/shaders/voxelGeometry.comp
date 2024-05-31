@@ -1,0 +1,154 @@
+#version 430
+
+ivec2 edge_vertices[12] = {
+    ivec2(0, 1), ivec2(1, 2), ivec2(3, 2), ivec2(0, 3),
+    ivec2(4, 5), ivec2(5, 6), ivec2(7, 6), ivec2(4, 7),
+    ivec2(0, 4), ivec2(1, 5), ivec2(2, 6), ivec2(3, 7)
+};
+
+
+ivec3 vertex_offset[8] = {
+    ivec3(0, 0, 0), ivec3(0, 1, 0),
+    ivec3(1, 1, 0), ivec3(1, 0, 0),
+    ivec3(0, 0, 1), ivec3(0, 1, 1),
+    ivec3(1, 1, 1), ivec3(1, 0, 1),
+};
+
+//struct Vertex
+//{
+//    vec4 position;
+//    vec4 normal;
+//    vec4 densitiesFront;
+//    vec4 densitiesBack;
+//    vec4 voxelInfo;
+//    vec4 edges;
+//    vec4 edgeDensities;
+//    vec4 localVertex;
+//    vec4 normalDensitiesXY;
+//    vec4 normalDensitiesZ;
+//};
+
+struct Vertex
+{
+    vec4 position;
+    vec4 normal;
+};
+
+layout(local_size_x = 32, local_size_y = 32, local_size_z = 1) in;
+layout(binding = 0) uniform sampler3D density_map;
+
+layout(std430, binding = 5) writeonly buffer output_vertex_buffer {
+    Vertex vertices[];
+};
+
+layout(std430, binding = 1) readonly buffer voxel_data_buffer {
+    uint voxel_data[];
+};
+
+layout(std430, binding = 2) readonly buffer prefix_sum_buffer {
+    uint prefix_sum[];
+};
+
+layout(std430, binding = 6) readonly buffer edge_connect_list_buffer {
+    ivec4 edge_connect_list[256][5];
+};
+
+uniform vec3 block_position;
+uniform float block_size;
+uniform int texture_channel;
+
+void main()
+{
+        // Calculate voxel index on the 1d array
+    uint voxelIndex = gl_GlobalInvocationID.x + gl_GlobalInvocationID.y * 32 + gl_GlobalInvocationID.z * 1024;
+
+
+        // Packed vertex of the given voxel
+    uint packedVoxel = voxel_data[voxelIndex];
+
+        // Extract the number of vertices
+    uint nPolys = packedVoxel & 0x7u;
+
+    if (nPolys == 0)
+        return;
+
+
+    uint prefixSum = prefix_sum[voxelIndex];
+
+        // Extract the case of the voxel
+    uint voxelCase = (packedVoxel >> 3) & 0xFFu;
+
+
+
+    // Calculate the size of the current voxel
+    float voxelSize = block_size / 32.0;
+        // Position of the current voxel in worldspace
+    vec3 voxelPos = block_position + gl_GlobalInvocationID * voxelSize;
+
+    uint startIndex = (prefixSum - nPolys) * 3;
+
+        // Distance between texels
+    float d = 1.0 / 32.0;
+
+    vec3 texelPos = gl_GlobalInvocationID * d;
+
+    for (int i = 0; i != nPolys; ++i)
+    {
+        ivec4 edges = edge_connect_list[voxelCase][i];
+
+        for (int j = 0; j != 3; ++j)
+        {
+                // Lookup which two vertices make up this edge
+            ivec2 edge = edge_vertices[edges[j]];
+
+                // Determine the weight based on the densities at these two vertices
+            float densityX = texture(density_map, texelPos + vertex_offset[edge.x] * d)[texture_channel];
+            float densityY = texture(density_map, texelPos + vertex_offset[edge.y] * d)[texture_channel];
+
+            float weight = densityX / (densityX - densityY);
+            // Interpolate using the weight to get the generated vertex location on the edge, and store it in the temporary array
+            vec3 localVertexPosition = mix(vertex_offset[edge.x],  vertex_offset[edge.y], weight);
+
+            vec3 normalTexelPos = (gl_GlobalInvocationID + texelPos) * d;
+            vec3 grad;
+            grad.x = texture(density_map, normalTexelPos + vec3(d, 0, 0))[texture_channel] -
+                       texture(density_map, normalTexelPos + vec3(-d, 0, 0))[texture_channel];
+            grad.y = texture(density_map, normalTexelPos + vec3(0, d, 0))[texture_channel] -
+                       texture(density_map, normalTexelPos + vec3(0, -d, 0))[texture_channel];
+            grad.z = texture(density_map, normalTexelPos + vec3(0, 0, d))[texture_channel] -
+                       texture(density_map, normalTexelPos + vec3(0, 0, -d))[texture_channel];
+
+            vec3 normal = -normalize(grad);
+            vec3 position = voxelPos + localVertexPosition * voxelSize;
+
+            vec3 texelPosition = vec3(gl_GlobalInvocationID) * d;
+
+            float densities[8];
+
+            // Lookup the densities for these 8 vertices
+            densities[0] = texture(density_map, vec3(texelPosition))[texture_channel];
+            densities[1] = texture(density_map, vec3(texelPosition.x, texelPosition.y + d, texelPosition.z))[texture_channel];
+            densities[2] = texture(density_map, vec3(texelPosition.x + d, texelPosition.y + d, texelPosition.z))[texture_channel];
+            densities[3] = texture(density_map, vec3(texelPosition.x + d, texelPosition.y, texelPosition.z))[texture_channel];
+            densities[4] = texture(density_map, vec3(texelPosition.x, texelPosition.y, texelPosition.z +  d))[texture_channel];
+            densities[5] = texture(density_map, vec3(texelPosition.x, texelPosition.y + d, texelPosition.z + d))[texture_channel];
+            densities[6] = texture(density_map, vec3(texelPosition.x + d, texelPosition.y + d, texelPosition.z + d))[texture_channel];
+            densities[7] = texture(density_map, vec3(texelPosition.x + d, texelPosition.y, texelPosition.z + d))[texture_channel];
+
+//
+//            vertices[startIndex + i * 3 + j] = Vertex(  vec4(position, 1),
+//                                                        vec4(normal, 1),
+//                                                        vec4(densities[0], densities[1], densities[2], densities[3]),
+//                                                        vec4(densities[4], densities[5], densities[6], densities[7]),
+//                                                        vec4(voxelCase, nPolys, edge[0], edge[1]),
+//                                                        edges,
+//                                                        vec4(densityX, densityY, weight, 0),
+//                                                        vec4(localVertexPosition, 0),
+//        vec4(texture(density_map, normalTexelPos + vec3(d, 0, 0))[texture_channel], texture(density_map, normalTexelPos + vec3(-d, 0, 0))[texture_channel], texture(density_map, normalTexelPos + vec3(0, d, 0))[texture_channel], texture(density_map, normalTexelPos + vec3(0, -d, 0))[texture_channel]),
+//        vec4(texture(density_map, normalTexelPos + vec3(0, 0, d))[texture_channel], texture(density_map, normalTexelPos + vec3(0, 0, -d))[texture_channel], 0, 0));
+            vertices[startIndex + i * 3 + j] = Vertex(vec4(position, 1), vec4(normal, 1));
+        }
+
+    }
+}
+

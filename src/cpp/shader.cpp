@@ -21,6 +21,7 @@ Shader::Shader(const std::string &path, GLenum shaderType)
     : m_ShaderID(0)
 {
     AddShader(path, shaderType);
+    CreateShaderProgram();
 }
 
 Shader::~Shader()
@@ -62,6 +63,8 @@ void Shader::CreateShaderProgram()
         shaders.push_back(CompileShader(m_fsPath, GL_FRAGMENT_SHADER));
     if (!m_gsPath.empty())
         shaders.push_back(CompileShader(m_gsPath, GL_GEOMETRY_SHADER));
+    if (!m_compPath.empty())
+        shaders.push_back(CompileShader(m_compPath, GL_COMPUTE_SHADER));
 
     m_ShaderID = LinkShaderProgram(shaders);
 }
@@ -100,7 +103,7 @@ GLuint Shader::CompileShader(const std::string &path, GLenum shaderType)
         glGetShaderiv(id, GL_INFO_LOG_LENGTH, &length);
         char *message = (char*)alloca(length * sizeof(char));
         glGetShaderInfoLog(id, length, &length, message);
-        std::cout << "Failed to compile " << (shaderType == GL_VERTEX_SHADER ? "vertex" : (shaderType == GL_GEOMETRY_SHADER ? "geometry" : "fragment")) << " shader\n";
+        std::cout << "Failed to compile " << (shaderType == GL_VERTEX_SHADER ? "vertex" : (shaderType == GL_GEOMETRY_SHADER ? "geometry" : (shaderType == GL_COMPUTE_SHADER ? "compute" : "fragment"))) << " shader\n";
         std::cout << message << "\n";
         glDeleteShader(id);
         return 0;
@@ -108,30 +111,6 @@ GLuint Shader::CompileShader(const std::string &path, GLenum shaderType)
     return id;
 }
 
-void Shader::SetUniform(const std::string &name, const glm::mat4 &value)
-{
-    glUniformMatrix4fv(GetUniformLocation(name), 1, false, &value[0].x);
-}
-void Shader::SetUniform(const std::string &name, float value)
-{
-    glUniform1f(GetUniformLocation(name), value);
-}
-void Shader::SetUniform(const std::string &name, GLint value)
-{
-    glUniform1i(GetUniformLocation(name), value);
-}
-void Shader::SetUniform(const std::string &name, GLuint value)
-{
-    glUniform1ui(GetUniformLocation(name), value);
-}
-void Shader::SetUniform(const std::string &name, bool value)
-{
-    glUniform1i(GetUniformLocation(name), value ? 1 : 0);
-}
-void Shader::SetUniform(const std::string &name, const glm::vec3& value)
-{
-    glUniform3fv(GetUniformLocation(name), 1, &value.x);
-}
 
 GLint Shader::GetUniformLocation(const std::string &name) const
 {
@@ -156,7 +135,70 @@ void Shader::AddShader(const std::string &path, GLenum shaderType)
         case GL_GEOMETRY_SHADER:
             m_gsPath = path;
             break;
+        case GL_COMPUTE_SHADER:
+            m_compPath = path;
+            break;
         default:
             return;
     }
+}
+
+template <typename T>
+void Shader::SetUniform(const std::string &name, const T &value)
+{}
+template <>
+void Shader::SetUniform<glm::mat4>(const std::string &name, const glm::mat4 &value)
+{
+    glUniformMatrix4fv(GetUniformLocation(name), 1, false, &value[0].x);
+}
+template <>
+void Shader::SetUniform<float>(const std::string &name, const float &value)
+{
+    glUniform1f(GetUniformLocation(name), value);
+}
+template <>
+void Shader::SetUniform<GLint>(const std::string &name, const GLint &value)
+{
+    glUniform1i(GetUniformLocation(name), value);
+}
+template <>
+void Shader::SetUniform<GLuint>(const std::string &name, const GLuint &value)
+{
+    glUniform1ui(GetUniformLocation(name), value);
+}
+template <>
+void Shader::SetUniform<bool>(const std::string &name, const bool &value)
+{
+    glUniform1i(GetUniformLocation(name), value ? 1 : 0);
+}
+template <>
+void Shader::SetUniform<glm::vec3>(const std::string &name, const glm::vec3 &value)
+{
+    glUniform3fv(GetUniformLocation(name), 1, &value.x);
+}
+
+template <>
+void Shader::SetUniform<std::vector<glm::vec3>>(const std::string &name, const std::vector<glm::vec3> &value)
+{
+    glUniform3fv(GetUniformLocation(name), static_cast<int>(value.size()), &value[0][0]);
+}
+
+template <>
+void Shader::SetUniform<std::vector<float>>(const std::string &name, const std::vector<float> &value)
+{
+    glUniform1fv(GetUniformLocation(name), static_cast<int>(value.size()), &value[0]);
+}
+
+template <>
+void Shader::SetUniform<glm::vec2>(const std::string &name, const glm::vec2 &value)
+{
+    glUniform2fv(GetUniformLocation(name), 1, &value.x);
+}
+
+
+template <>
+void Shader::SetUniform<glm::ivec3>(const std::string &name, const glm::ivec3 &value)
+{
+    const glm::vec3 vec = value;
+    glUniform3fv(GetUniformLocation(name), 1, &vec.x);
 }
