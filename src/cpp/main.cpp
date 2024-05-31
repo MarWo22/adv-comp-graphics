@@ -35,6 +35,8 @@ Texture environmentMap;
 
 Camera camera;
 
+Atmosphere atmosphere;
+
 void loadShaders()
 {
     background = Shader("./shaders/fullscreenQuad.vert", "./shaders/background.frag");
@@ -112,7 +114,7 @@ void initialize()
     glEnable(GL_DEPTH_TEST); // enable Z-buffering
     glEnable(GL_CULL_FACE);  // enables backface culling
 
-
+    atmosphere = Atmosphere();
 
 }
 
@@ -128,6 +130,37 @@ void drawQuad(mat4 viewMatrix, mat4 projectionMatrix)
 void drawBackground(const mat4& viewMatrix, const mat4& projectionMatrix)
 {
     background.Bind();
+
+    ////////////////////////// Atmosphere
+    /// Direction from which the sun is facing
+    background.SetUniform("sun_direction", atmosphere.sun_direction);
+    /// Radius of the planet.
+    background.SetUniform("planet_radius", atmosphere.planet_radius);
+    /// Radius of the atmosphere around the planet.
+    background.SetUniform("atmosphere_radius", atmosphere.atmosphere_radius);
+    /// Atmospheric thickness for Rayleigh scattering (Hr). Assumes density as uniform.
+    background.SetUniform("rayleigh_atmospheric_thickness", atmosphere.rayleigh_atmospheric_thickness);
+    /// Atmospheric thickness for Mie scattering (Hm). Assumes density as uniform.
+    background.SetUniform("mie_atmospheric_thickness", atmosphere.mie_atmospheric_thickness);
+    /// Rayleigh scattering coefficient (βr). Assumes sea level.
+    background.SetUniform("beta_rayleigh", atmosphere.beta_rayleigh);
+    /// Mie scattering coefficient (βm). Assumes sea level.
+    background.SetUniform("beta_mie", atmosphere.beta_mie);
+    /// Assumes sea level. Measured in kg/m^3.
+    background.SetUniform("molecular_density", atmosphere.molecular_density);
+    /// Assumes sea level.
+    background.SetUniform("air_refraction_index", atmosphere.air_refraction_index);
+    /// "A general way to describe how a value fades away".
+    background.SetUniform("rayleigh_scale_height", atmosphere.rayleigh_scale_height);
+    /// "A general way to describe how a value fades away".
+    background.SetUniform("mie_scale_height", atmosphere.mie_scale_height);
+    /// Wavelength peaks
+    background.SetUniform("wavelength_peak", atmosphere.wavelength_peak);
+    /// Samples
+    background.SetUniform("num_samples", 16);
+    // Light Samples
+    background.SetUniform("num_light_samples", 8);
+
     background.SetUniform("environment_multiplier", environment_multiplier);
     background.SetUniform("inv_PV", inverse(projectionMatrix * viewMatrix));
     background.SetUniform("camera_pos", camera.Pos());

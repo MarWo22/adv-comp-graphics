@@ -4,10 +4,10 @@
 #include "glm/fwd.hpp"
 #include "glm/vec3.hpp"
 
-class atmosphere {
+class Atmosphere {
 public:
     /// Defaults are pertinent to the earth.
-    explicit atmosphere(
+    explicit Atmosphere(
         glm::vec3 sunDirection = glm::vec3(0,1,0),
         float planetRadius = 6360e3,
         float atmosphereRadius = 6420e3,

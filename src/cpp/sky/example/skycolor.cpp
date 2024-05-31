@@ -107,10 +107,10 @@ using Vec3f = Vec3<float>;
 // The atmosphere class. Stores data about the planetory body (its radius), the atmosphere itself
 // (thickness) and things such as the Mie and Rayleigh coefficients, the sun direction, etc.
 // [/comment]
-class Atmosphere
+class PaperAtmosphere
 {
 public:
-    Atmosphere(
+    PaperAtmosphere(
         Vec3f sd = Vec3f(0, 1, 0), 
         float er = 6360e3, float ar = 6420e3,
         float hr = 7994, float hm = 1200) :
@@ -133,8 +133,8 @@ public:
     static const Vec3f betaM;
 };
 
-const Vec3f Atmosphere::betaR(3.8e-6f, 13.5e-6f, 33.1e-6f);
-const Vec3f Atmosphere::betaM(21e-6f);
+const Vec3f PaperAtmosphere::betaR(3.8e-6f, 13.5e-6f, 33.1e-6f);
+const Vec3f PaperAtmosphere::betaM(21e-6f);
 
 bool solveQuadratic(float a, float b, float c, float& x1, float& x2)
 {
@@ -179,7 +179,7 @@ bool raySphereIntersect(const Vec3f& orig, const Vec3f& dir, const float& radius
 // sample along the primary ray, we then "cast" a light ray and raymarch along that ray as well.
 // We basically shoot a ray in the direction of the sun.
 // [/comment]
-Vec3f Atmosphere::computeIncidentLight(const Vec3f& orig, const Vec3f& dir, float tmin, float tmax) const
+Vec3f PaperAtmosphere::computeIncidentLight(const Vec3f& orig, const Vec3f& dir, float tmin, float tmax) const
 {
     float t0, t1;
     if (!raySphereIntersect(orig, dir, atmosphereRadius, t0, t1) || t1 < 0) return 0;
@@ -235,8 +235,8 @@ Vec3f Atmosphere::computeIncidentLight(const Vec3f& orig, const Vec3f& dir, floa
 
 void renderSkydome(const Vec3f& sunDir, const char *filename)
 {
-//    Atmosphere atmosphere(sunDir);
-    atmosphere atmosphere(glm::vec3(sunDir.x, sunDir.y, sunDir.z));
+//    PaperAtmosphere atmosphere(sunDir);
+    Atmosphere atmosphere(glm::vec3(sunDir.x, sunDir.y, sunDir.z));
 
     auto t0 = std::chrono::high_resolution_clock::now();
 #if 1

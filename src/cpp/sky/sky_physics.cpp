@@ -29,7 +29,7 @@
 //     return sea_level_molecular_density * exp(-height / atmospheric_thickness);
 // }
 
-glm::vec3 atmosphere::beta_rayleigh_computed(const float height) const {
+glm::vec3 Atmosphere::beta_rayleigh_computed(const float height) const {
     return
     8 * powf(M_PI, 3) * powf(powf(air_refraction_index, 2) - 1, 2) /
     (3 * molecular_density * pow(wavelength_peak, glm::vec3(4))) *
@@ -40,7 +40,7 @@ glm::vec3 atmosphere::beta_rayleigh_computed(const float height) const {
 //     return beta_rayleigh_computed(height, wavelength);
 // }
 
-float atmosphere::rayleigh_phase(const glm::vec3 view_direction) const {
+float Atmosphere::rayleigh_phase(const glm::vec3 view_direction) const {
     return 3.0f / (16.0f * M_PI) * (1 + powf(dot(view_direction, sun_direction), 2));
 }
 
@@ -52,11 +52,11 @@ float atmosphere::rayleigh_phase(const glm::vec3 view_direction) const {
 //     ((2+pow(medium_anisotropy, 2))*pow(1 + pow(medium_anisotropy, 2) - 2 * medium_anisotropy * my, 3.0/2.0)) ;
 // }
 
-float atmosphere::cos_sim(const glm::vec3 a, const glm::vec3 b) {
+float Atmosphere::cos_sim(const glm::vec3 a, const glm::vec3 b) {
     return cosf(angle(a, b));
 }
 
-glm::vec3 atmosphere::incident_light(const glm::vec3& origin, const glm::vec3 &dir, bool computeR,
+glm::vec3 Atmosphere::incident_light(const glm::vec3& origin, const glm::vec3 &dir, bool computeR,
     float tMin, float tMax,
     int numSamples, int numLightSamples) const
 {
