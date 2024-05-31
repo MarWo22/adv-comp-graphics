@@ -194,6 +194,8 @@ void drawBackground(const mat4& viewMatrix, const mat4& projectionMatrix)
     background.SetUniform("num_samples", 16);
     // Light Samples
     background.SetUniform("num_light_samples", 8);
+    // Use Texture
+    background.SetUniform("use_texture", 1);
 
     background.SetUniform("environment_multiplier", environment_multiplier);
     background.SetUniform("inv_PV", inverse(projectionMatrix * viewMatrix));

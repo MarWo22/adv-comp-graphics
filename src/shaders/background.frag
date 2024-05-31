@@ -41,7 +41,7 @@ uniform int num_samples;
 // Light Samples
 uniform int num_light_samples;
 // Use texture?
-uniform bool use_texture;
+uniform int use_texture;
 
 bool solveQuadratic(float a, float b, float c, inout float x1, inout float x2)
 {
@@ -157,6 +157,10 @@ vec3 incident_light(const vec3 origin, const vec3 dir, bool computeR, float tMin
 	) * 20.0f;
 }
 
+vec4 greyscale(const vec4 color)
+{
+	return vec4(vec3(color.r * .299f + color.g * .587f + color.b * .114f), color.w);
+}
 
 void main()
 {
@@ -175,6 +179,6 @@ void main()
 
 	vec3 sky_light = incident_light(vec3(camera_pos.x, camera_pos.y + planet_radius, camera_pos.z), dir, false, 0, (1.0 / 0.0) /* Hacky way to say infinity */, num_samples, num_light_samples);
 
-	fragmentColor = vec4(sky_light, 1) * (use_texture ? texture(environmentMap, lookup) : vec3(1)) * environment_multiplier;
+	fragmentColor = vec4(sky_light, 1) * ((use_texture == 1) ? greyscale(texture(environmentMap, lookup)) : vec4(1)) * environment_multiplier;
 //	fragmentColor = environment_multiplier * texture(environmentMap, lookup) ;
 }
